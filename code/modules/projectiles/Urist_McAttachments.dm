@@ -11,7 +11,7 @@
 
 /obj/item/weapon/gun
 	var/attachable_overlays[] 		= null		//List of overlays so we can switch them in an out, instead of using Cut() on overlays.
-	var/attachable_offset[] 		= null		//List.Every two indeces is an x/y coordinate for an attachment. CARTESIAN, NOT FROM THE CENTER OF THE SPRITE. Check example icon in attachments.dmi
+	var/attachable_offset[] 		= null		//List.Every two indeces is an x/y coordinate for an attachment. FROM THE CENTER OF THE SPRITE. Check example icon in attachments.dmi
 	var/attachable_allowed[]		= null		//Must be the exact path to the attachment present in the list. Leave null if there are no restrictions.
 	var/obj/item/attachment/muzzle 	= null		//Attachable slots. Only one item per slot.
 	var/obj/item/attachment/rail 	= null
@@ -27,23 +27,25 @@
 
 
 /obj/item/weapon/gun/Initialize() // I totes tested this, since the file is lower in the hierarchy, it just adds to the existing initialization.
-. = ..()
+	. = ..()
 	if(starting_attachments && starting_attachments.len)
 		for(var/i in starting_attachments)
-			var/obj/item/attachable/A = new i(src)
+			var/obj/item/attachment/A = new i(src)
 			A.Attach(src)
 
 
-/obj/item/weapon/gun/add_attachment(user, var/obj/item/attachment/A) // Newspawn dictates if it should skip all the player interactivity crap. Index just tells it what to pull from the starting list..
+/obj/item/weapon/gun/attackby(user, var/obj/item/attachment/A)
+	if(!istype(A, obj/item/attachment/
+
+/obj/item/weapon/gun/proc/add_attachment(user, var/obj/item/attachment/A) // Newspawn dictates if it should skip all the player interactivity crap. Index just tells it what to pull from the starting list..
 
 	if( do_after(user, 1 SECOND, can_move = TRUE) )
 		A.Attach(src)
-	update_attachment_image()
 
 
-/obj/item/weapon/gun/remove_attachment(user)
+
+/obj/item/weapon/gun/proc/remove_attachment(user)
 	//Alert for what you want to remove.
-	var/obj/item/attachment/A
 	switch( alert("From whichslot do you want to remove?",,"Muzzle","Rail","Underbarrel","Stock") )
 		if("Muzzle")
 			muzzle.Detach()
@@ -53,6 +55,8 @@
 			under.Detach()
 		if("Stock")
 			stock.Detach()
+
+/obj/item/weapon/gun/proc/update_attachment_image()
 
 
 /* ---------------------------------BIG LONG READABILITY DIVIDING LINE---------------------------------*/
@@ -67,8 +71,10 @@ obj/item/attachment //Attachment base object. Carries variables.
 	var/burst_accuracy_mod //
 	var/recoil_mod //dictates screen shake
 	var/accuracy_mod //Every whole number counts as that many turfs closer. Can be negative.
+	var/delay_mod // Affects postfire delay.
+	var/burst_delay_mod //Affects burst speed.
 	var/force_mod//edits force
-	var/force_type //Edged? Give this one a flag.
+	var/list/force_type = list() //List. Index 1 is edge, index 2 is sharp. Booleans.
 	var/suppressor
 
 //Vars that specifically fuck with the projectile
@@ -92,25 +98,31 @@ obj/item/attachment/proc/Attach(obj/item/weapon/gun/G) // Only slightly complete
 	G.damage_mult		+= damage_mod
 	G.fire_delay 		+= delay_mod
 	G.burst_delay 		+= burst_delay_mod
-	G.burst 		+= burst_mod
-	G.screen_shake			+= recoil_mod
+	G.burst 			+= burst_mod
+	G.screen_shake		+= recoil_mod
 	G.force 			+= force_mod
-	G.update_force_list()
+	G.edge 				+= force_type[1]
+	G.sharp 			+= force_type[2]
 
 	if(suppressor) //Built in silencers always come as an attach, so the gun can't be silenced right off the bat.
 		G.silenced = TRUE
 	forceMove(G)
+	G.update_attachment_image()
 
 
 obj/item/attachment/proc/Detach(obj/item/weapon/gun/G) //Inverse of the above.
 	if(!istype(G))
 		return
 
-	switch(position) //I am removing checks for the attachment being src.
-		if(RAIL) 		G.rail = null//If it's being called on by this proc, it has to be that attachment. ~N
-		if(MUZZLE) 	G.muzzle = null
-		if(UNDER)		G.under = null
-		if(STOCK)		G.stock = null
+	switch(position)
+		if(RAIL)
+			G.rail = null
+		if(MUZZLE)
+			G.muzzle = null
+		if(UNDER)
+			G.under = null
+		if(STOCK)
+			G.stock = null
 
 
 
@@ -118,14 +130,16 @@ obj/item/attachment/proc/Detach(obj/item/weapon/gun/G) //Inverse of the above.
 	G.damage_mult		-= damage_mod
 	G.fire_delay 		-= delay_mod
 	G.burst_delay 		-= burst_delay_mod
-	G.burst_amount 		-= burst_mod
-	G.screen_shake			-= recoil_mod
+	G.burst 		-= burst_mod
+	G.screen_shake		-= recoil_mod
 	G.force 			-= force_mod
-	G.update_force_list()
+	G.edge 				-= force_type[1]
+	G.sharp 			-= force_type[2]
 
 	if(suppressor) //Built in silencers always come as an attach, so the gun can't be silenced right off the bat.
 		G.silenced = TRUE
 	forceMove(get_turf(src))
+	G.update_attachment_image()
 
 obj/item/attachment/muzzle
 	name = "shitcode muzzle"
