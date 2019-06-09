@@ -11,7 +11,17 @@
 
 /obj/item/weapon/gun
 	var/attachable_overlays[] 		= null		//List of overlays so we can switch them in an out, instead of using Cut() on overlays.
-	var/attachable_offset[] 		= null		//List.Every two indeces is an x/y coordinate for an attachment. FROM THE CENTER OF THE SPRITE. Check example icon in attachments.dmi
+	var/attachable_offset[] 		= list (MUZZLE 		= 16,	\
+											MUZZLE+0.5	= 0,	\
+											RAIL		= 10,	\
+											RAIL+0.5	= 0,	\
+											UNDER		= 10,	\
+											UNDER+0.5	= -2,	\
+											STOCK		= -6,	\
+											STOCK+0.5	= -5\
+											)
+
+		//List.Every two indeces is an x/y coordinate for an attachment. FROM THE CENTER OF THE SPRITE. Check example icon in attachments.dmi
 	var/attachable_allowed[]		= null		//Must be the exact path to the attachment present in the list. Leave null if there are no restrictions.
 	var/obj/item/attachment/muzzle 	= null		//Attachable slots. Only one item per slot.
 	var/obj/item/attachment/rail 	= null
@@ -35,10 +45,11 @@
 
 
 /obj/item/weapon/gun/attackby(user, var/obj/item/attachment/A)
-	if(!istype(A, obj/item/attachment/
+	..()
+	if(istype(A, obj/item/attachment/))
+		add_attachment(user, A)
 
-/obj/item/weapon/gun/proc/add_attachment(user, var/obj/item/attachment/A) // Newspawn dictates if it should skip all the player interactivity crap. Index just tells it what to pull from the starting list..
-
+/obj/item/weapon/gun/proc/add_attachment(user, var/obj/item/attachment/A)
 	if( do_after(user, 1 SECOND, can_move = TRUE) )
 		A.Attach(src)
 
