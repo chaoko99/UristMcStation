@@ -128,6 +128,7 @@
 	reagent_state = LIQUID
 	color = "#0064c877"
 	metabolism = REM * 10
+	hydration = 6
 	taste_description = "water"
 	glass_name = "water"
 	glass_desc = "The father of all refreshments."
